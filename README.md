@@ -1,39 +1,18 @@
 # PowerMonitor
 
-A lightweight macOS menu bar app that monitors power draw vs charger input in real-time. Warns you when your system is drawing more power than your charger can supply.
+I was on a flight that only had a USB power outlet, and I didn't know whether I was drawing more power than I was receiving. So I built this.
 
-![menu bar screenshot](https://github.com/user-attachments/assets/placeholder)
+![PowerMonitor menu bar](screenshot.png)
 
-## Features
-
-- **Event-driven** — uses `IOPSNotificationCreateRunLoopSource` for near-zero CPU usage when idle
-- **Menu bar icon** — shows current wattage with warning indicator when draining while plugged in
-- **Native notifications** — alerts you when battery is draining despite being plugged in (5-min cooldown)
-- **Live power stats** — charger wattage, battery flow, estimated system draw, battery %, cycle count
-- **No dependencies** — single Swift file, compiles with `swiftc`, no Xcode project needed
-
-## Why?
-
-If you use a low-wattage charger (e.g. 27W) with a high-performance laptop (e.g. MacBook Pro M2 Max), your system can easily draw more than the charger provides under load — draining your battery even while plugged in. This app makes that visible at a glance.
+A single-file SwiftUI menu bar app for macOS. Event-driven via IOKit — near-zero CPU when idle.
 
 ## Install
-
-### Build from source
 
 ```bash
 git clone https://github.com/jlreyes/PowerMonitor.git
 cd PowerMonitor
 make install
-```
-
-### Manual build
-
-```bash
-mkdir -p PowerMonitor.app/Contents/MacOS
-swiftc -parse-as-library -framework Cocoa -framework IOKit -framework UserNotifications \
-  -O -o PowerMonitor.app/Contents/MacOS/PowerMonitor PowerMonitor.swift
-cp Info.plist PowerMonitor.app/Contents/Info.plist
-open -a PowerMonitor.app
+open -a ~/.local/bin/PowerMonitor.app
 ```
 
 ## Auto-start on login
@@ -42,23 +21,30 @@ open -a PowerMonitor.app
 make launchd-install
 ```
 
-This installs a LaunchAgent that opens PowerMonitor when you log in. To remove:
+To remove:
 
 ```bash
 make launchd-uninstall
 ```
 
+## How it works
+
+- Registers an `IOPSNotificationCreateRunLoopSource` callback that fires on any power source change
+- Reads `AppleSmartBattery` via IOKit for voltage, amperage, charging state
+- If `ExternalConnected == true && InstantAmperage < 0` — you're draining while plugged in
+- Sends a native macOS notification (5-min cooldown) when this happens
+
 ## Menu bar states
 
 | Icon | Meaning |
 |---|---|
-| ⚡ 12W | Plugged in, charging at 12W into battery |
-| ▲ 5W | Plugged in, draining at 5W (charger can't keep up) |
+| ⚡ 9W | Plugged in, charging at 9W into battery |
+| ⚠ 5W | Plugged in, draining at 5W (charger can't keep up) |
 | 63% | On battery |
 
 ## Requirements
 
-- macOS 13+ (Ventura or later)
+- macOS 13+
 - Swift 5.9+
 
 ## License
